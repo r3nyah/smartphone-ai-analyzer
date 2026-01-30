@@ -36,7 +36,7 @@ def get_first_csv(folder_path):
 
 # --- TEXT PRETTIFIER ---
 def prettify_name(name):
-    """Mengubah 'samsung s23 fe 5g' menjadi 'Samsung S23 FE 5G'"""
+    """Converts 'samsung s23 fe 5g' to 'Samsung S23 FE 5G'"""
     if pd.isna(name): return ""
     
     name = str(name).title() 
@@ -55,21 +55,24 @@ def prettify_name(name):
 def clean_currency(price_val):
     if pd.isna(price_val): return 0.0
     str_val = str(price_val).strip()
-    # Deteksi India Rupee
+    
+    # Detect Indian Rupee
     if '₹' in str_val:
         clean = str_val.replace('₹', '').replace(',', '')
         try: return float(clean) * 0.012
         except: return 0.0
-    # Deteksi Rupiah
+        
+    # Detect Indonesian Rupiah
     if 'Rp' in str_val:
         clean = str_val.replace('Rp', '').replace('.', '').replace(',', '')
         try: return float(clean) / 15500 
         except: return 0.0
-    # Deteksi Dollar/Angka biasa
+        
+    # Detect Dollar/Standard Number
     clean = str_val.replace('$', '').replace(',', '')
     try:
         val = float(clean)
-        # Fallback: Jika angka > 5000 tanpa simbol, anggap Rupee
+        # Fallback: If value > 5000 without symbol, assume Rupee
         if val > 5000: return val * 0.012 
         return val
     except ValueError: return 0.0
@@ -87,14 +90,14 @@ def clean_storage(storage_val):
     clean_str = str(storage_val).upper().replace('GB', '').replace('STORAGE', '').strip()
     try:
         val = int(float(clean_str.split()[0]))
-        # Safety: Storage < 10GB kemungkinan error/RAM
+        # Safety: Storage < 10GB is likely an error or RAM
         if val < 10: return 0 
         return val
     except ValueError: return 0
 
 def find_best_match(name, choices):
     if pd.isna(name): return None
-    # Matching menggunakan lowercase agar akurasi tinggi
+    # Matching uses lowercase to ensure high accuracy
     match, score = process.extractOne(name, choices, scorer=fuzz.token_set_ratio)
     if score >= 60: return match
     return None
@@ -103,7 +106,7 @@ def process_pipeline():
     setup_directories()
     download_datasets()
 
-    print("[-] detecting CSVs...")
+    print("[-] Detecting CSVs...")
     specs_path = get_first_csv(RAW_SPECS_DIR)
     antutu_path = get_first_csv(RAW_ANTUTU_DIR)
     
@@ -156,11 +159,11 @@ def process_pipeline():
     print("[-] Merging Datasets...")
     tqdm.pandas()
     
-    # MATCHING DULU SEBELUM PRETTIFY (Supaya akurasi fuzzy tetap tinggi)
+    # MATCH FIRST BEFORE PRETTIFYING (To maintain high fuzzy accuracy)
     df_specs['matched_device'] = df_specs['full_name'].progress_apply(lambda x: find_best_match(x, antutu_devices))
     df_merged = pd.merge(df_specs, df_antutu, left_on='matched_device', right_on=dev_col, how='inner')
     
-    # PRETTIFY SETELAH MERGE
+    # PRETTIFY AFTER MERGE
     df_merged['full_name'] = df_merged['full_name'].apply(prettify_name)
 
     # Score Logic
@@ -173,8 +176,8 @@ def process_pipeline():
     final_df = df_merged[['full_name', 'clean_ram', 'clean_storage', 'clean_price', score_col]]
     final_df.rename(columns={score_col: 'antutu_score', 'clean_storage': 'storage'}, inplace=True)
     
-    # FILTER DIPERLONGGAR:
-    # Hanya buang yang storage-nya 0. Harga 0 BOLEH MASUK.
+    # LOOSENED FILTER:
+    # Only discard 0 storage. 0 Price IS ALLOWED.
     final_df = final_df[final_df['storage'] > 0]
     
     output_path = os.path.join(PROCESSED_DATA_DIR, "training_data.csv")
