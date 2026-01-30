@@ -1,0 +1,14 @@
+pandas
+numpy
+kaggle
+thefuzz
+python-levenshtein
+scikit-learn
+tqdm
+youtube-search-python
+youtube-comment-downloader
+httpx==0.27.2
+streamlit
+plotly
+joblib
+torch

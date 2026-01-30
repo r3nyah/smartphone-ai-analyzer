@@ -1,0 +1,9 @@
+# Ignore Kaggle credentials
+kaggle.json
+
+# Ignore raw downloads
+data/raw/
+
+# Ignore Python cache
+__pycache__/
+*.pyc
