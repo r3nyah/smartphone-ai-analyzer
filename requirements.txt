@@ -8,7 +8,7 @@ tqdm
 youtube-search-python
 youtube-comment-downloader
 httpx==0.27.2
-streamlit
+streamlit>=1.38.0
 plotly
 joblib
 torch
